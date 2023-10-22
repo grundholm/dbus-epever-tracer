@@ -47,11 +47,11 @@ else:
     sys.exit()
 
 #controller = minimalmodbus.Instrument('/dev/ttyUSB0', 1)
-controller.serial.baudrate = 115200
+controller.serial.baudrate = 2400
 controller.serial.bytesize = 8
 controller.serial.parity = serial.PARITY_NONE
 controller.serial.stopbits = 1
-controller.serial.timeout = 0.2
+controller.serial.timeout = 0.25
 controller.mode = minimalmodbus.MODE_RTU
 controller.clear_buffers_before_each_transaction = True
 
@@ -123,9 +123,9 @@ class DbusEpever(object):
 
         global exceptionCounter
         try:
-            c3100 = controller.read_registers(0x3100,18,4)
-            c3200 = controller.read_registers(0x3200,3,4)
-            c3300 = controller.read_registers(0x3300,20,4)
+            c3100 = controller.read_registers(0,20,3)
+            #c3200 = controller.read_registers(0x3200,3,4)
+            #c3300 = controller.read_registers(0x3300,20,4)
         except:
             print(exceptions)
             exceptionCounter +=1
@@ -136,16 +136,18 @@ class DbusEpever(object):
             if c3100[0] < 1:            #PV Voltage min 0.01 damit PV Current berechnet werden kann
                 c3100[0] = 1
 
-            self._dbusservice['/Dc/0/Voltage'] = c3100[4]/100
-            self._dbusservice['/Dc/0/Current'] = c3100[5]/100.0
-            self._dbusservice['/Dc/0/Temperature'] = c3100[16]/100
-            self._dbusservice['/Pv/V'] = c3100[0]/100
-            self._dbusservice['/Yield/Power'] =round((c3100[2] | c3100[3] << 8)/100)
-            self._dbusservice['/Load/I'] = c3100[13]/100
-            self._dbusservice['/State'] = state[getBit(c3200[1],3)* 2 + getBit(c3200[1],2)]
-            self._dbusservice['/Load/State'] = c3200[2]
-            self._dbusservice['/Yield/User'] =(c3300[18] | c3300[19] << 8)/100
-            self._dbusservice['/History/Daily/0/Yield'] =(c3300[12] | c3300[13] << 8)/100
+            self._dbusservice['/Dc/0/Voltage'] = c3100[4]/10
+            self._dbusservice['/Dc/0/Current'] = c3100[5]/10.0
+            self._dbusservice['/Dc/0/Temperature'] = c3100[16]
+            self._dbusservice['/Pv/V'] = c3100[11]/10
+            self._dbusservice['/Yield/Power'] = 0
+            #self._dbusservice['/Yield/Power'] =round((c3100[2] | c3100[3] << 8)/100)
+            self._dbusservice['/Load/I'] = 0
+            self._dbusservice['/State'] = 0
+            #self._dbusservice['/State'] = state[getBit(c3200[1],3)* 2 + getBit(c3200[1],2)]
+            self._dbusservice['/Load/State'] = 0
+            self._dbusservice['/Yield/User'] = ((c3100[18] << 16) | c3100[19])/1000
+            self._dbusservice['/History/Daily/0/Yield'] = 0
             
             if self._dbusservice['/Yield/Power'] > self._dbusservice['/History/Daily/0/MaxPower']:
                 self._dbusservice['/History/Daily/0/MaxPower'] = self._dbusservice['/Yield/Power']
